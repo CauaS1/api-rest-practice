@@ -3,7 +3,13 @@ const app = express();
 const bodyParser = require("body-parser");
 const connection = require("./database/db");
 
+const jwt = require("jsonwebtoken");
+const secret = "ifjsdioufjm3ui4j987h89rjhdjq8dje978r";
+
+const auth = require("./middleware/authenticator");
+
 const Store = require("./database/Store");
+const User = require("./database/User");
 
 connection
   .authenticate()
@@ -19,7 +25,7 @@ app.use(bodyParser.json());
 
 //Routes
 
-app.get("/games", (req, res) => {
+app.get("/games", auth, (req, res) => {
   Store.findAll().then(games => {
     res.json({ games });
     res.sendStatus(200);
@@ -80,6 +86,51 @@ app.delete("/game/:id", (req, res) => {
       res.sendStatus(200);
     })
   }
-})
+});
+
+app.post("/register", (req, res) => {
+  const { email, password } = req.body;
+  User.findOne({ where: {email: email} }).then(account => {
+    if(account == undefined) {
+      User.create({
+        email, password
+      }).then(info => {
+        res.json({ info });
+      })
+    } else {
+      res.json({ msg: "Error, we already have an account with this email!" })
+    }
+  });
+});
+
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+  User.findOne({ where: { email: email } }).then(account => {
+    if(account != undefined) {
+      if(account.password == password) {
+        jwt.sign({
+          id: account.id,
+          email: account.email
+        }, secret, { expiresIn: '1d' }, (error, token) => {
+          if(error) {
+            res.status(400);
+            res.json({ error: "Fail!" })
+          } else {
+            res.status(200);
+            res.json({ token });
+          }
+        })
+
+
+      } else {
+        res.status(401);
+        res.json({ msg: "Invalid Password!" })
+      }
+    } else {
+      res.status(401);
+    }
+  });
+});
+
 
 app.listen(5500, () => { console.log("It's working!") })
