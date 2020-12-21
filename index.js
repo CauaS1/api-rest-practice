@@ -27,8 +27,7 @@ app.use(bodyParser.json());
 
 app.get("/games", auth, (req, res) => {
   Store.findAll().then(games => {
-    res.json({ games });
-    res.sendStatus(200);
+    res.json({ games, user: req.user, project: req.project, createdBy: req.createdBy })
   })
 });
 
@@ -46,7 +45,6 @@ app.get("/game/:id", (req, res) => {
       } else {
         res.statusCode(404);
       }
-
     })
   }
 });
